@@ -19,7 +19,7 @@ if not os.path.exists(LOGS_DIR):
 
 
 # Define Kibana URL and visualization ID
-KIBANA_URL = "https://5601-cs-9449e6d0-9054-4f9d-860f-d7ee587b3f1f.cs-europe-west1-xedi.cloudshell.dev"
+KIBANA_URL = "https://l.facebook.com/l.php?u=https%3A%2F%2Fsupreme-potato-7v596rxg7wrqcx7gg-5601.app.github.dev%2F%3Ffbclid%3DIwZXh0bgNhZW0CMTAAAR1UWvjdbPPd5eU_hF0PEMHqAwmn5ruzofO5qASkpEq4M4cW4qd1OlWUs5w_aem_6SjC9jAZyT5CDczAf4QuFg&h=AT0n15qr6LYrwil_TMD6UwZYocMe3aQo3Uy8M_U7r7ae3c9mpkaWvmYChQVTELRK7rK0oYm2yZknnapa1DZgZFCwKFoWeTIXr9VSID-UG_eo90VHQg7zGmVerBpXewpmLtYzcQ"
 # /  # URL complète de votre instance Kibana
 #VISUALIZATION_ID = "a2cbb630-b0ea-11ef-bffc-c7786914d8da"
 
@@ -76,7 +76,7 @@ def process_json(filename):
         print(f"Fichier JSON traité: {filename}")
 
         # Indexer le fichier JSON dans Elasticsearch
-        es.index(index="json2-2024-12-10", body=data)
+        es.index(index="json2-2024-12-12", body=data)
         
         # Rafraîchir l'index pour que les données soient immédiatement disponibles
         es.indices.refresh(index="logs-json-index")
@@ -105,7 +105,7 @@ def process_csv(filename):
         print(f"Fichier CSV importé dans Elasticsearch : {filename}")
 
     # Rafraîchir l'index pour que les données soient immédiatement disponibles
-    es.indices.refresh(index="csv2-2024.12.10")
+    es.indices.refresh(index="csv2-2024.12.12")
     print("Index rafraîchi dans Elasticsearch.")
 
 
@@ -125,13 +125,38 @@ def search_logs():
                     }
                 }
             }
-            response = es.search(index="csv2-2024.12.10", body=es_query)
+            response = es.search(index="csv2-2024.12.12", body=es_query)
             results = response.get('hits', {}).get('hits', [])
 
             # Remove duplicates based on 'LineId'
             results = {result['_source']['LineId'] : result for result in results}.values()
 
     return render_template('search.html', results=results, query=query)
+
+@app.route('/search2', methods=['GET', 'POST'])
+def search_logs2():
+    results = []
+    query = ""
+    if request.method == 'POST':
+        query = request.form.get('query')
+        if query:
+            # Elasticsearch search query
+            es_query = {
+                "query": {
+                    "multi_match": {
+                        "query": query,
+                        "fields": ["log.level", "Message"]
+                    }
+                }
+            }
+            response = es.search(index="json2-2024.12.12", body=es_query)
+            results = response.get('hits', {}).get('hits', [])
+
+            # Remove duplicates based on 'Timestamp' (or any unique field if needed)
+            #results = {result['_source']['Timestamp']: result for result in results}.values()
+
+    return render_template('search2.html', results=results, query=query)
+
 
 
 if __name__ == '__main__':
